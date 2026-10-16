@@ -1,0 +1,1009 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2b5797">
+<title>Vems serve?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one-screen scorer's tool — scoreboard, serve line, court (net vertical, halves mirror sides), big point buttons */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --ink: #17202b;
+  --muted: #5a6776;
+  --line: #d3d9e1;
+  --freezone: #2b5797;
+  --court: #e58a3f;
+  --court-front: #d97a2e;
+  --court-line: #ffffff;
+  --team-a: #1f55c9;
+  --team-a-soft: #dfe8fb;
+  --team-b: #a8246f;
+  --team-b-soft: #f6e0ec;
+  --ball: #ffd21f;
+  --ball-ink: #3b2f00;
+  --edit: #1f55c9;
+  --sub: #1d7a4c;
+  --sub-soft: #ddf2e6;
+  --warn: #b45309;
+  --shadow: 0 1px 2px rgba(20,30,45,.08), 0 6px 20px rgba(20,30,45,.08);
+  --f-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --f-body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f151c; --surface: #18212b; --ink: #e7ecf2; --muted: #95a3b3; --line: #2a3644;
+    --freezone: #1a3461; --court: #b8652d; --court-front: #a95a24; --court-line: #f1e6dc;
+    --team-a: #5d8dff; --team-a-soft: #1d2b4d; --team-b: #e2609f; --team-b-soft: #3f1b30;
+    --ball: #ffd21f; --ball-ink: #3b2f00; --edit: #6e9bff; --sub: #3fbf7f; --sub-soft: #173527; --warn: #f59e0b;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.35);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f151c; --surface: #18212b; --ink: #e7ecf2; --muted: #95a3b3; --line: #2a3644;
+  --freezone: #1a3461; --court: #b8652d; --court-front: #a95a24; --court-line: #f1e6dc;
+  --team-a: #5d8dff; --team-a-soft: #1d2b4d; --team-b: #e2609f; --team-b-soft: #3f1b30;
+  --ball: #ffd21f; --ball-ink: #3b2f00; --edit: #6e9bff; --sub: #3fbf7f; --sub-soft: #173527; --warn: #f59e0b;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.35);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+/* Lagfärg: --tc fyllning, --ti text på fyllning, --tt text/linje på yta, --te kantlinje */
+.t0 { --tc: var(--c0-fill); --ti: var(--c0-ink); --tt: var(--c0-txt); --te: var(--c0-edge); }
+.t1 { --tc: var(--c1-fill); --ti: var(--c1-ink); --tt: var(--c1-txt); --te: var(--c1-edge); }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.4; }
+button { font: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--ball); outline-offset: 2px; }
+button:disabled { cursor: not-allowed; opacity: .45; }
+
+.app { max-width: 980px; margin: 0 auto; padding: 12px 16px 28px; display: flex; flex-direction: column; gap: 12px; }
+
+/* Top bar */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { font-family: var(--f-display); font-weight: 700; font-size: 26px; letter-spacing: .01em; display: flex; align-items: center; gap: 8px; }
+.brand .ball { width: 22px; height: 22px; }
+.btn-ghost { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-weight: 600; font-size: 14px; }
+
+/* Scoreboard */
+.board { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: stretch; }
+.team-card { background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 4px; min-width: 0; border-top: 5px solid var(--te); position: relative; }
+.team-card.right { text-align: right; align-items: flex-end; }
+.team-name { background: none; border: 0; padding: 0; font-family: var(--f-display); font-weight: 600; font-size: 20px; color: var(--tt); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: inherit; }
+.team-name:hover { text-decoration: underline; text-decoration-thickness: 1px; }
+.score-row { display: flex; align-items: center; gap: 10px; }
+.team-card.right .score-row { flex-direction: row-reverse; }
+.score { font-family: var(--f-display); font-weight: 700; font-size: clamp(52px, 13vw, 84px); line-height: .9; font-variant-numeric: tabular-nums; }
+.pips { display: flex; gap: 5px; }
+.pip { width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--tt); }
+.pip.on { background: var(--tt); }
+.serve-chip { display: inline-flex; align-items: center; gap: 5px; background: var(--ball); color: var(--ball-ink); font-weight: 700; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; padding: 3px 8px 3px 4px; border-radius: 999px; }
+.serve-chip .ball { width: 16px; height: 16px; }
+.serve-slot { min-height: 22px; }
+.center-info { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 0 2px; text-align: center; }
+.set-label { font-family: var(--f-display); font-weight: 700; font-size: 22px; line-height: 1; }
+.set-sub { font-size: 12px; color: var(--muted); line-height: 1.25; }
+.sets-won { font-family: var(--f-display); font-weight: 600; font-size: 18px; font-variant-numeric: tabular-nums; margin-top: 4px; }
+
+.history { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.history:empty { display: none; }
+.hchip { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 3px 8px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.hchip b { font-weight: 700; }
+
+/* Serve line */
+.serve-bar { background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); padding: 10px 14px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center; text-align: center; }
+.serve-bar .big { font-family: var(--f-display); font-weight: 700; font-size: 24px; line-height: 1.1; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.serve-bar .ball { width: 26px; height: 26px; }
+.serve-bar .who { color: var(--tt); }
+.serve-bar.ask { border: 2px dashed var(--ball); flex-direction: column; gap: 8px; }
+.ask-title { font-family: var(--f-display); font-weight: 700; font-size: 22px; }
+.ask-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.btn-team { border: 2px solid var(--te); border-radius: 12px; padding: 12px 18px; font-weight: 700; background: var(--tc); color: var(--ti); min-width: 130px; font-size: 16px; display: inline-flex; align-items: center; gap: 8px; justify-content: center; }
+.btn-small { background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; font-size: 13px; font-weight: 600; color: var(--muted); }
+
+/* Court */
+.court-wrap { background: var(--freezone); border-radius: 16px; padding: 14px 12px 10px; box-shadow: var(--shadow); }
+.court { display: grid; grid-template-columns: 1fr 6px 1fr; aspect-ratio: 2 / 1; max-width: 100%; border: 3px solid var(--court-line); background: var(--court); }
+@media (max-width: 600px) { .court { aspect-ratio: 16 / 12; } }
+.half { display: grid; grid-template-rows: repeat(3, 1fr); min-width: 0; position: relative; }
+.half.left { grid-template-columns: 1.7fr 1fr; }
+.half.right { grid-template-columns: 1fr 1.7fr; }
+.net { background: repeating-linear-gradient(to bottom, var(--court-line) 0 4px, transparent 4px 8px), #1b1f24; box-shadow: 0 0 0 1px rgba(0,0,0,.25); }
+.zone { position: relative; display: flex; align-items: center; justify-content: center; min-width: 0; }
+.zone.front { background: var(--court-front); }
+.half.left .zone.front { border-left: 2px solid var(--court-line); }
+.half.right .zone.front { border-right: 2px solid var(--court-line); }
+.posno { position: absolute; top: 3px; font-family: var(--f-display); font-weight: 700; font-size: 13px; color: rgba(255,255,255,.8); line-height: 1; }
+.half.left .posno { left: 5px; }
+.half.right .posno { right: 5px; }
+
+.player { --size: clamp(38px, 11.5vw, 62px); width: var(--size); height: var(--size); border-radius: 50%; border: 3px solid var(--te); background: var(--tc); color: var(--ti); font-family: var(--f-display); font-weight: 700; font-size: calc(var(--size) * .46); display: flex; align-items: center; justify-content: center; position: relative; box-shadow: 0 2px 6px rgba(0,0,0,.25); user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: manipulation; font-variant-numeric: tabular-nums; transition: transform .12s ease; }
+.player.back { background: var(--surface); color: var(--tt); border-color: var(--tt); }
+.player.empty { border-style: dashed; opacity: .85; font-weight: 500; }
+.player.empty.front { background: color-mix(in srgb, var(--tc) 55%, transparent); }
+.player:active { transform: scale(.94); }
+.player.pressing { transform: scale(1.08); box-shadow: 0 0 0 4px var(--ball); }
+.player .subbed { position: absolute; bottom: -6px; right: -8px; background: var(--sub); color: #fff; font-family: var(--f-body); font-size: 10px; font-weight: 700; border-radius: 999px; padding: 1px 5px; border: 2px solid var(--court); line-height: 1.3; }
+.player .ballmark { position: absolute; top: -8px; right: -8px; width: 22px; height: 22px; }
+.half.right .player .ballmark { right: auto; left: -8px; }
+.player.serving { box-shadow: 0 0 0 3px #14181f, 0 0 0 7px var(--ball), 0 2px 6px rgba(0,0,0,.25); }
+@media (prefers-reduced-motion: no-preference) {
+  .player.serving { animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 3px #14181f, 0 0 0 7px var(--ball), 0 2px 6px rgba(0,0,0,.25); } 50% { box-shadow: 0 0 0 3px #14181f, 0 0 0 11px color-mix(in srgb, var(--ball) 60%, transparent), 0 2px 6px rgba(0,0,0,.25); } }
+}
+
+.row-labels { display: grid; grid-template-columns: 1fr 6px 1fr; margin-top: 6px; color: rgba(255,255,255,.85); font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.row-labels > div { display: grid; }
+.row-labels .l { grid-template-columns: 1.7fr 1fr; }
+.row-labels .r { grid-template-columns: 1fr 1.7fr; }
+.row-labels span { text-align: center; }
+.row-labels .names { display: flex; justify-content: space-between; }
+.side-names { display: flex; justify-content: space-between; gap: 12px; color: #fff; font-family: var(--f-display); font-weight: 600; font-size: 16px; margin-bottom: 8px; }
+.side-names span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; display: flex; align-items: center; gap: 6px; }
+.side-names i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; flex: none; background: var(--tc); border: 2px solid #fff; }
+
+/* Controls */
+.controls { display: grid; grid-template-columns: minmax(0,1fr) 112px minmax(0,1fr); gap: 10px; align-items: stretch; }
+.btn-point { border: 2px solid var(--te); border-radius: 14px; padding: 14px 10px; background: var(--tc); color: var(--ti); font-family: var(--f-display); font-weight: 700; font-size: 26px; line-height: 1.05; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; box-shadow: var(--shadow); }
+.btn-point .prow { display: flex; align-items: center; gap: 10px; }
+.btn-point .pscore { background: var(--surface); color: var(--ink); border-radius: 8px; padding: 2px 10px; min-width: 2.1em; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.btn-point small { font-family: var(--f-body); font-size: 13px; font-weight: 600; opacity: .9; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.btn-point:active:not(:disabled) { transform: translateY(1px); }
+.mid-controls { display: flex; flex-direction: column; gap: 8px; justify-content: stretch; width: 112px; min-width: 0; }
+.btn-undo, .btn-side { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; font-weight: 700; font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 1px; flex: 1; }
+.btn-undo, .btn-side { width: 100%; min-width: 0; }
+.btn-undo small, .btn-side small { font-weight: 500; font-size: 11px; color: var(--muted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+.subs-row { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; color: var(--muted); }
+.subs-row b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.subs-row .over { color: var(--warn); }
+.hint { color: var(--muted); font-size: 13px; text-align: center; margin: 0; }
+.hint strong { color: var(--ink); }
+
+/* Sheet */
+[hidden] { display: none !important; }
+.overlay { position: fixed; inset: 0; background: rgba(10,15,22,.55); display: flex; align-items: flex-end; justify-content: center; z-index: 50; padding: 12px; padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+@media (min-width: 640px) { .overlay { align-items: center; } }
+.sheet { background: var(--surface); color: var(--ink); border-radius: 18px; width: 100%; max-width: 460px; max-height: calc(100% - 24px); overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+.sheet-head { padding: 16px 18px 12px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; border-bottom: 1px solid var(--line); }
+.sheet-head.mode-edit { border-top: 6px solid var(--edit); border-radius: 18px 18px 0 0; }
+.sheet-head.mode-sub { border-top: 6px solid var(--sub); border-radius: 18px 18px 0 0; }
+.sheet-head.mode-win { border-top: 6px solid var(--ball); border-radius: 18px 18px 0 0; }
+.eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.sheet h2 { font-family: var(--f-display); font-weight: 700; font-size: 28px; margin: 2px 0 0; line-height: 1.1; text-wrap: balance; }
+.x { background: none; border: 0; font-size: 26px; line-height: 1; padding: 2px 6px; color: var(--muted); }
+.sheet-body { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 14px; }
+.tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--bg); padding: 4px; border-radius: 12px; }
+.tab { border: 0; background: transparent; padding: 10px 8px; border-radius: 9px; font-weight: 700; color: var(--muted); }
+.tab[aria-selected="true"].t-edit { background: var(--edit); color: #fff; }
+.tab[aria-selected="true"].t-sub { background: var(--sub); color: #fff; }
+.mode-banner { font-size: 14px; padding: 10px 12px; border-radius: 10px; line-height: 1.35; }
+.mode-banner.edit { background: var(--team-a-soft); }
+.mode-banner.sub { background: var(--sub-soft); }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label, .field .lbl { font-weight: 600; font-size: 14px; }
+.inp { font: inherit; font-size: 22px; font-weight: 600; padding: 10px 12px; border-radius: 10px; border: 2px solid var(--line); background: var(--bg); color: var(--ink); width: 100%; }
+.inp.num { font-family: var(--f-display); font-size: 34px; text-align: center; letter-spacing: .04em; }
+.inp.text { font-size: 17px; }
+.inp:focus { border-color: var(--edit); outline: none; }
+.swap { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; }
+.swap .out { text-align: center; }
+.swap .out .n { font-family: var(--f-display); font-size: 40px; font-weight: 700; line-height: 1; text-decoration: line-through; text-decoration-thickness: 3px; color: var(--muted); }
+.swap .arrow { font-size: 22px; color: var(--sub); font-weight: 700; }
+.warnline { color: var(--warn); font-size: 13px; font-weight: 600; margin: 0; }
+.muted { color: var(--muted); font-size: 13px; margin: 0; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.actions > * { flex: 1 1 140px; }
+.btn { border: 0; border-radius: 12px; padding: 13px 14px; font-weight: 700; font-size: 16px; }
+.btn.primary { background: var(--ink); color: var(--surface); }
+.btn.edit { background: var(--edit); color: #fff; }
+.btn.sub { background: var(--sub); color: #fff; }
+.btn.secondary { background: var(--bg); color: var(--ink); border: 1px solid var(--line); }
+.btn.link { background: none; color: var(--muted); text-decoration: underline; padding: 6px; font-weight: 600; font-size: 14px; flex: 0 0 auto; }
+
+.seg { display: flex; gap: 4px; background: var(--bg); padding: 4px; border-radius: 12px; flex-wrap: wrap; }
+.seg button { flex: 1 1 0; border: 0; background: transparent; padding: 9px 6px; border-radius: 9px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 52px; }
+.seg button[aria-pressed="true"] { background: var(--surface); box-shadow: var(--shadow); color: var(--ink); }
+.seg button[aria-pressed="false"] { color: var(--muted); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.check { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+.check input { width: 22px; height: 22px; accent-color: var(--ink); }
+.bigscore { font-family: var(--f-display); font-weight: 700; font-size: 56px; line-height: 1; text-align: center; font-variant-numeric: tabular-nums; margin: 0; }
+.setlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.setlist li { display: grid; grid-template-columns: 60px 1fr auto; gap: 10px; align-items: center; padding: 8px 10px; background: var(--bg); border-radius: 10px; font-variant-numeric: tabular-nums; }
+.setlist .sc { font-family: var(--f-display); font-size: 22px; font-weight: 700; }
+.setlist .w { font-size: 13px; font-weight: 700; color: var(--tt); }
+.pick { display: flex; gap: 8px; }
+.pick .btn-team { flex: 1; min-width: 0; opacity: .5; border: 3px solid transparent; }
+.pick .btn-team[aria-pressed="true"] { opacity: 1; border-color: var(--ball); }
+.pick .btn-team span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.ball { display: inline-block; flex: none; }
+/* Skärmlås-reglage */
+.wakebar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-top: 1px solid var(--line); margin-top: 6px; }
+.wake-title { font-weight: 700; font-size: 15px; }
+.wake-status { font-size: 13px; color: var(--muted); }
+.switch { flex: none; width: 54px; height: 32px; border-radius: 999px; border: 0; background: var(--line); position: relative; padding: 0; transition: background .2s; }
+.switch .knob { position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: left .2s; }
+.switch[aria-checked="true"] { background: var(--sub); }
+.switch[aria-checked="true"] .knob { left: 25px; }
+/* Vyval och servemottagning */
+.viewbar { display: flex; flex-direction: column; gap: 6px; }
+.viewbar .seg button { font-size: 15px; padding: 10px 6px; }
+.formation { position: absolute; inset: 0; pointer-events: none; }
+.formation .player { position: absolute; translate: -50% -50%; pointer-events: auto; --size: clamp(36px, 10vw, 56px); flex-direction: column; gap: 1px; line-height: 1; }
+@media (prefers-reduced-motion: no-preference) { .formation .player { transition: left .35s ease, top .35s ease, transform .12s ease; } }
+.player .role { font-size: calc(var(--size) * .36); letter-spacing: .02em; }
+.player .jn { font-family: var(--f-body); font-weight: 700; font-size: calc(var(--size) * .23); opacity: .9; }
+.player .posbadge { position: absolute; bottom: -7px; left: -7px; background: #14181f; color: #fff; font-family: var(--f-body); font-size: 10px; font-weight: 700; border-radius: 999px; padding: 1px 5px; border: 2px solid var(--court-line); line-height: 1.3; }
+.player .setterbadge { position: absolute; top: -7px; left: -7px; background: #14181f; color: #fff; font-family: var(--f-body); font-size: 10px; font-weight: 700; border-radius: 999px; padding: 1px 5px; border: 2px solid var(--court-line); line-height: 1.3; }
+.half.right .player .setterbadge { left: auto; right: -7px; }
+.formation .player.is-setter { box-shadow: 0 0 0 3px #fff, 0 2px 6px rgba(0,0,0,.3); }
+.half-note { position: absolute; left: 6%; right: 6%; top: 50%; translate: 0 -50%; background: #14181f; color: #fff; font-size: 13px; font-weight: 600; line-height: 1.35; text-align: center; padding: 8px 10px; border-radius: 10px; pointer-events: none; z-index: 2; }
+.legend { color: var(--muted); font-size: 13px; text-align: center; margin: 0; line-height: 1.5; }
+.legend b { color: var(--ink); }
+.rcv-tag { background: #fff; color: #14181f; font-family: var(--f-body); font-size: 11px; font-weight: 700; letter-spacing: .04em; border-radius: 999px; padding: 2px 7px; flex: none; }
+.setter-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; background: var(--bg); border-radius: 10px; }
+.setter-row .muted { margin-top: 2px; }
+.btn.setter-on { background: var(--ink); color: var(--surface); }
+.swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.sw { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--line); background: var(--sw); position: relative; padding: 0; }
+.sw.light { border-color: #9aa5b3; }
+.sw[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--surface), 0 0 0 6px var(--ink); }
+.sw[aria-pressed="true"]::after { content: "✓"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--swi); font-weight: 700; font-size: 18px; }
+.sw:disabled { opacity: .25; }
+.sw-label { font-size: 13px; color: var(--muted); }
+
+@media (max-width: 520px) {
+  .controls { grid-template-columns: minmax(0,1fr) 96px minmax(0,1fr); }
+  .mid-controls { width: 96px; }
+  .team-card { padding: 8px 9px 10px; }
+  .team-name { font-size: 17px; }
+  .serve-bar .big { font-size: 20px; }
+  .btn-point { font-size: 22px; padding: 12px 6px; }
+  .set-label { font-size: 18px; }
+}
+</style>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+html, body { margin: 0; }
+img { max-width: 100%; }
+</style>
+</head>
+<body>
+
+
+<div class="app">
+  <header class="top">
+    <div class="brand"><svg class="ball" viewBox="0 0 24 24" aria-hidden="true"><use href="#vball"/></svg>Vems serve?</div>
+    <button class="btn-ghost" id="btnSettings" type="button">Inställningar</button>
+  </header>
+
+  <section class="board" id="board" aria-label="Poängtavla"></section>
+  <div class="history" id="history" aria-label="Avslutade set"></div>
+  <div class="serve-bar" id="serveBar" aria-live="polite"></div>
+
+  <div class="viewbar">
+    <div class="seg" id="viewSeg" role="group" aria-label="Vy">
+      <button type="button" data-act="view" data-view="base" aria-pressed="true">Grunduppställning</button>
+      <button type="button" data-act="view" data-view="rcv" aria-pressed="false">Servemottagning</button>
+    </div>
+  </div>
+
+  <section class="court-wrap" aria-label="Planen">
+    <div class="side-names" id="sideNames"></div>
+    <div class="court" id="court"></div>
+    <div class="row-labels" aria-hidden="true">
+      <div class="l"><span>Bakplan</span><span>Fram</span></div><div></div>
+      <div class="r"><span>Fram</span><span>Bakplan</span></div>
+    </div>
+  </section>
+
+  <div class="legend" id="legend" hidden>
+    <p class="legend" id="legendTop"></p>
+    <p class="legend"><b>P</b> passare · <b>VN</b>/<b>VL</b> vänster nära/långt · <b>CN</b>/<b>CL</b> center nära/långt · <b>H</b> höger · <b>L</b> libero. Den lilla siffran är spelarens rotationsposition.</p>
+  </div>
+  <label class="check" style="justify-content:center;font-size:13px"><input type="checkbox" id="chkLibero"> Libero tar centerns plats i bakplan</label>
+
+  <section class="controls" id="controls"></section>
+  <div class="subs-row" id="subsRow"></div>
+  <p class="hint"><strong>Tryck</strong> på en spelare för att göra ett byte. <strong>Håll inne</strong> för att skriva in tröjnummer.</p>
+
+  <div class="wakebar">
+    <div><div class="wake-title">Håll skärmen tänd</div><div class="wake-status" id="wakeStatus" aria-live="polite"></div></div>
+    <button type="button" class="switch" id="wakeToggle" role="switch" aria-checked="false" aria-label="Håll skärmen tänd"><span class="knob"></span></button>
+  </div>
+</div>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"></div>
+</div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="vball" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="10.5" fill="#ffd21f" stroke="#2a3a8c" stroke-width="1.5"/>
+      <path d="M12 1.5c-1.8 3.5-1.8 7.2 0 10.5 3.3 0 6.8-1.3 10-4" fill="none" stroke="#2a3a8c" stroke-width="1.4"/>
+      <path d="M12 12c-1.9 3.1-4.9 5.2-8.9 5.8" fill="none" stroke="#2a3a8c" stroke-width="1.4"/>
+      <path d="M12 12c3.6.3 6.4 2.4 8.1 6" fill="none" stroke="#2a3a8c" stroke-width="1.4"/>
+    </symbol>
+  </defs>
+</svg>
+
+<script>
+(function () {
+  "use strict";
+  const KEY = "vemsServe.v1";
+  const BALL = '<svg class="ball" viewBox="0 0 24 24" aria-hidden="true"><use href="#vball"/></svg>';
+
+  // Court layout per side: rows top→bottom, [col0, col1]
+  const LAYOUT_LEFT = [[5, 4], [6, 3], [1, 2]];   // col0 = bakplan, col1 = fram (vid nätet)
+  const LAYOUT_RIGHT = [[2, 1], [3, 6], [4, 5]];  // col0 = fram (vid nätet), col1 = bakplan
+  const FRONT = new Set([2, 3, 4]);
+
+  // Lagfärger: fill, ink (text på fill), txt/edge i ljust resp. mörkt tema
+  const COLORS = {
+    lila:     { name: "Lila",     fill: "#5b3cc4", ink: "#ffffff", txt: ["#5b3cc4", "#a693ff"], edge: ["#5b3cc4", "#5b3cc4"] },
+    rosa:     { name: "Rosa",     fill: "#c02a7c", ink: "#ffffff", txt: ["#b0246f", "#f07ab8"], edge: ["#c02a7c", "#c02a7c"] },
+    rod:      { name: "Röd",      fill: "#d3232c", ink: "#ffffff", txt: ["#c01f28", "#ff7378"], edge: ["#d3232c", "#d3232c"] },
+    vit:      { name: "Vit",      fill: "#ffffff", ink: "#17202b", txt: ["#4a5563", "#eef2f6"], edge: ["#8d98a6", "#8d98a6"], light: true },
+    ljusbla:  { name: "Ljusblå",  fill: "#5cbcef", ink: "#0b2233", txt: ["#1a7fb8", "#8fd2f6"], edge: ["#3fa6dd", "#5cbcef"], light: true },
+    morkbla:  { name: "Mörkblå",  fill: "#1b2f6b", ink: "#ffffff", txt: ["#1b2f6b", "#8ea6ec"], edge: ["#1b2f6b", "#5a73bd"] },
+    svart:    { name: "Svart",    fill: "#15171b", ink: "#ffffff", txt: ["#15171b", "#d3d9e1"], edge: ["#15171b", "#8a95a3"] },
+    gra:      { name: "Grå",      fill: "#7b8591", ink: "#ffffff", txt: ["#5c6570", "#b3bcc7"], edge: ["#7b8591", "#7b8591"] },
+    gul:      { name: "Gul",      fill: "#f5c518", ink: "#2b2200", txt: ["#8f6b00", "#f5c518"], edge: ["#d4a800", "#f5c518"], light: true }
+  };
+  const COLOR_KEYS = Object.keys(COLORS);
+  (function injectPalette() {
+    const light = [], dark = [];
+    for (const k of COLOR_KEYS) {
+      const c = COLORS[k];
+      light.push(`--pal-${k}-fill:${c.fill};--pal-${k}-ink:${c.ink};--pal-${k}-txt:${c.txt[0]};--pal-${k}-edge:${c.edge[0]};`);
+      dark.push(`--pal-${k}-txt:${c.txt[1]};--pal-${k}-edge:${c.edge[1]};`);
+    }
+    const css = `:root{${light.join("")}}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){${dark.join("")}}}
+:root[data-theme="dark"]{${dark.join("")}}`;
+    const st = document.createElement("style"); st.textContent = css; document.head.appendChild(st);
+  })();
+  function applyColors() {
+    const r = document.documentElement.style;
+    state.teams.forEach((tm, i) => {
+      const k = COLORS[tm.color] ? tm.color : (i ? "rosa" : "lila");
+      for (const part of ["fill", "ink", "txt", "edge"]) r.setProperty(`--c${i}-${part}`, `var(--pal-${k}-${part})`);
+    });
+  }
+  function swatches(id, current, blocked) {
+    return `<div class="swatches" role="group" aria-label="Lagfärg">${COLOR_KEYS.map(k => {
+      const c = COLORS[k];
+      return `<button type="button" class="sw ${c.light ? "light" : ""}" style="--sw:${c.fill};--swi:${c.ink}" data-act="color" data-target="${id}" data-color="${k}" aria-pressed="${k === current}" ${k === blocked ? "disabled" : ""} title="${c.name}${k === blocked ? " (det andra laget)" : ""}" aria-label="${c.name}"></button>`;
+    }).join("")}</div><div class="sw-label">${COLORS[current] ? COLORS[current].name : ""}</div>`;
+  }
+
+  const defaultSettings = () => ({ setsToPlay: 3, setTarget: 25, decidingTarget: 15, startScore: 0, decidingStart: 0 });
+  const newTeam = (name, color) => ({ name, color, setter: null, slots: ["", "", "", "", "", ""], orig: [null, null, null, null, null, null], rot: 0, subs: 0, setsWon: 0 });
+
+  function newMatch(settings, names, colors) {
+    const s = settings || defaultSettings();
+    const st = {
+      settings: s,
+      teams: [newTeam(names ? names[0] : "Hemmalaget", colors ? colors[0] : "lila"), newTeam(names ? names[1] : "Bortalaget", colors ? colors[1] : "rosa")],
+      leftTeam: 0,
+      setIndex: 0,
+      score: [0, 0],
+      server: null,
+      firstServer: null,
+      history: [],
+      setResults: [],
+      phase: "play",
+      switchedAt8: false,
+      view: "base",
+      libero: true
+    };
+    st.score = [startScoreFor(st), startScoreFor(st)];
+    return st;
+  }
+
+  let state = load() || newMatch();
+
+  // ---------- rules ----------
+  function isDeciding(st = state) {
+    const n = st.settings.setsToPlay;
+    return (n === 3 || n === 5) && st.setIndex === n - 1;
+  }
+  function targetFor(st = state) { return isDeciding(st) ? st.settings.decidingTarget : st.settings.setTarget; }
+  function startScoreFor(st = state) {
+    return isDeciding(st) && st.settings.decidingStart > 0 ? st.settings.decidingStart : st.settings.startScore;
+  }
+  function neededToWin(st = state) { const n = st.settings.setsToPlay; return n === 2 ? 2 : Math.ceil(n / 2); }
+  function matchDecided(st = state) {
+    if (st.settings.setsToPlay === 2) return st.setResults.length >= 2;
+    return st.teams.some(t => t.setsWon >= neededToWin(st));
+  }
+  function slotAt(team, pos) { return ((pos - 1 + team.rot) % 6 + 6) % 6; }
+  function jerseyAt(t, pos) { const team = state.teams[t]; return team.slots[slotAt(team, pos)]; }
+  // Roller i 5-1 utifrån passarens plats i rotationsordningen
+  const ROLE_BY_OFFSET = ["P", "VN", "CL", "H", "VL", "CN"];
+  const ROLE_NAME = { P: "Passare", VN: "Vänster nära", VL: "Vänster långt", CN: "Center nära", CL: "Center långt", H: "Höger", L: "Libero" };
+  function setterPos(t) { const tm = state.teams[t]; if (tm.setter === null) return null; return (((tm.setter - tm.rot) % 6) + 6) % 6 + 1; }
+  function roleAt(t, pos) {
+    const tm = state.teams[t]; if (tm.setter === null) return null;
+    const r = ROLE_BY_OFFSET[(slotAt(tm, pos) - tm.setter + 6) % 6];
+    if (state.libero && (r === "CN" || r === "CL") && !FRONT.has(pos)) return "L";
+    return r;
+  }
+  // Mottagningsformationer (3-mannamottagning: libero + båda vänstrarna).
+  // Nyckel = passarens position. Per position: [djup från nätet 0–1, sidled från lagets vänster 0–1]
+  const FORMATION = {
+    1: { 4: [.07, .1],  3: [.26, .32], 2: [.55, .84], 5: [.6, .14],  6: [.65, .5],  1: [.9, .94] },
+    6: { 4: [.5, .15],  3: [.06, .5],  2: [.07, .88], 5: [.63, .42], 6: [.24, .68],  1: [.6, .84] },
+    5: { 4: [.07, .1],  3: [.52, .22], 2: [.37, .9],  5: [.3, .3],   6: [.64, .56], 1: [.66, .8] },
+    4: { 4: [.06, .12], 3: [.1, .33],  2: [.52, .84], 5: [.58, .16], 6: [.64, .5],  1: [.9, .94] },
+    3: { 4: [.5, .15],  3: [.07, .6],  2: [.08, .76], 5: [.62, .4],  6: [.9, .62],  1: [.6, .85] },
+    2: { 4: [.06, .1],  3: [.46, .26], 2: [.08, .74], 5: [.9, .48],  6: [.63, .54], 1: [.6, .85] }
+  };
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  function receivingTeam() { return state.server === null ? null : 1 - state.server; }
+
+  function setOverScore(sc, target) { const hi = Math.max(sc[0], sc[1]); return hi >= target && Math.abs(sc[0] - sc[1]) >= 2; }
+
+  // ---------- actions ----------
+  function chooseFirstServer(t) {
+    if (state.history.length) return;
+    state.server = t; state.firstServer = t; commit();
+  }
+
+  function addPoint(t) {
+    if (state.phase !== "play" || state.server === null) return;
+    const e = { winner: t, prevServer: state.server, rotated: false, setEnd: false, flag8: false };
+    state.score[t]++;
+    if (state.server !== t) { state.teams[t].rot++; e.rotated = true; state.server = t; }
+    // sidbyte vid 8 i avgörande set
+    if (isDeciding() && !state.switchedAt8 && startScoreFor() < 8 && Math.max(...state.score) === 8 && state.score[t] === 8) {
+      state.switchedAt8 = true; e.flag8 = true;
+    }
+    if (setOverScore(state.score, targetFor())) {
+      e.setEnd = true;
+      state.teams[t].setsWon++;
+      state.setResults.push({ score: state.score.slice(), winner: t });
+      state.phase = matchDecided() ? "matchOver" : "setOver";
+    }
+    state.history.push(e);
+    commit();
+    if (e.setEnd) openSheet(state.phase === "matchOver" ? "match" : "set");
+    else if (e.flag8) openSheet("switch8");
+  }
+
+  function undo() {
+    const e = state.history.pop();
+    if (!e) return;
+    if (e.setEnd) { state.setResults.pop(); state.teams[e.winner].setsWon--; state.phase = "play"; }
+    state.score[e.winner]--;
+    if (e.rotated) state.teams[e.winner].rot--;
+    state.server = e.prevServer;
+    if (e.flag8) state.switchedAt8 = false;
+    commit();
+  }
+
+  function switchSides() { state.leftTeam = 1 - state.leftTeam; commit(); }
+
+  function startNextSet(server, doSwitch) {
+    state.setIndex++;
+    state.teams.forEach(tm => { tm.setter = null; tm.slots = ["", "", "", "", "", ""]; tm.orig = [null, null, null, null, null, null]; tm.rot = 0; tm.subs = 0; });
+    state.score = [startScoreFor(), startScoreFor()];
+    state.server = server; state.firstServer = server;
+    state.history = []; state.phase = "play"; state.switchedAt8 = false;
+    if (doSwitch) state.leftTeam = 1 - state.leftTeam;
+    commit();
+  }
+
+  // ---------- persistence ----------
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (_) {} }
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY); if (!raw) return null;
+      const s = JSON.parse(raw);
+      if (!s || !Array.isArray(s.teams) || s.teams.length !== 2 || !s.settings) return null;
+      s.teams.forEach((t, i) => { if (!COLORS[t.color]) t.color = i ? "rosa" : "lila"; if (t.setter === undefined) t.setter = null; });
+      if (!s.view) s.view = "base"; if (s.libero === undefined) s.libero = true;
+      return s;
+    } catch (_) { return null; }
+  }
+  function commit() { save(); render(); }
+
+  // ---------- render ----------
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const sides = () => [state.leftTeam, 1 - state.leftTeam];
+
+  function render() {
+    const [L, R] = sides();
+    applyColors();
+    renderBoard(L, R);
+    renderHistory();
+    renderServe(L, R);
+    renderCourt(L, R);
+    renderControls(L, R);
+  }
+
+  function teamCard(t, side) {
+    const tm = state.teams[t];
+    const need = neededToWin();
+    let pips = "";
+    for (let i = 0; i < need; i++) pips += `<span class="pip ${i < tm.setsWon ? "on" : ""}"></span>`;
+    const serving = state.server === t;
+    return `<div class="team-card t${t} ${side}">
+      <button class="team-name" type="button" data-act="rename" data-team="${t}" title="Ändra namn och färg">${esc(tm.name)}</button>
+      <div class="score-row"><div class="score" aria-label="Poäng ${esc(tm.name)}">${state.score[t]}</div><div class="pips" aria-label="Vunna set: ${tm.setsWon}">${pips}</div></div>
+      <div class="serve-slot">${serving ? `<span class="serve-chip">${BALL}Serve</span>` : ""}</div>
+    </div>`;
+  }
+
+  function renderBoard(L, R) {
+    const n = state.settings.setsToPlay;
+    const setsTxt = n === 2 ? "2 set" : n === 1 ? "1 set" : `Bäst av ${n}`;
+    const extra = [];
+    extra.push(`till ${targetFor()}`);
+    if (startScoreFor() > 0) extra.push(`start ${startScoreFor()}–${startScoreFor()}`);
+    $("board").innerHTML = teamCard(L, "left") +
+      `<div class="center-info">
+         <div class="set-label">Set ${state.setIndex + 1}${isDeciding() ? "" : ""}</div>
+         <div class="set-sub">${isDeciding() ? "Avgörande<br>" : ""}${extra.join("<br>")}</div>
+         <div class="sets-won" aria-label="Setställning">${state.teams[L].setsWon}–${state.teams[R].setsWon}</div>
+         <div class="set-sub">${setsTxt}</div>
+       </div>` + teamCard(R, "right");
+  }
+
+  function renderHistory() {
+    $("history").innerHTML = state.setResults.map((r, i) =>
+      `<span class="hchip">Set ${i + 1}: <b>${r.score[0]}–${r.score[1]}</b></span>`).join("") +
+      (state.setResults.length ? `<span class="hchip" style="color:var(--muted)">${esc(state.teams[0].name)} – ${esc(state.teams[1].name)}</span>` : "");
+  }
+
+  function renderServe(L, R) {
+    const bar = $("serveBar");
+    if (state.server === null) {
+      bar.className = "serve-bar ask";
+      bar.innerHTML = `<div class="ask-title">Vem servar först i set ${state.setIndex + 1}?</div>
+        <div class="ask-row">
+          <button class="btn-team t${L}" type="button" data-act="first" data-team="${L}">${BALL}${esc(state.teams[L].name)}</button>
+          <button class="btn-team t${R}" type="button" data-act="first" data-team="${R}">${BALL}${esc(state.teams[R].name)}</button>
+        </div>`;
+      return;
+    }
+    const t = state.server, j = jerseyAt(t, 1);
+    bar.className = `serve-bar t${t}`;
+    bar.innerHTML = `<div class="big">${BALL}<span>Serve: <span class="who">${esc(state.teams[t].name)}</span></span>
+        <span>· ${j ? "nr " + esc(j) : "position 1"}</span></div>
+      ${state.history.length === 0 ? `<button class="btn-small" type="button" data-act="flipfirst">Fel lag? Byt servande lag</button>` : ""}`;
+  }
+
+  function playerBtn(t, pos, extraCls, style, inner, label) {
+    return `<button type="button" class="player ${extraCls}" ${style ? `style="${style}"` : ""} data-team="${t}" data-pos="${pos}" aria-label="${esc(label)}">${inner}</button>`;
+  }
+
+  function renderReceptionHalf(t, layout, sideCls) {
+    const tm = state.teams[t];
+    const sp = setterPos(t);
+    let html = `<div class="half ${sideCls} t${t}">`;
+    for (const row of layout) for (const pos of row)
+      html += `<div class="zone ${FRONT.has(pos) ? "front" : "back"}"><span class="posno">${pos}</span></div>`;
+    const F = FORMATION[sp];
+    html += `<div class="formation">`;
+    for (let pos = 1; pos <= 6; pos++) {
+      const [x, y] = F[pos];
+      const dx = clamp(x, .09, .91), dy = clamp(y, .13, .87);
+      const left = sideCls === "left" ? (1 - dx) * 100 : dx * 100;
+      const top = sideCls === "left" ? dy * 100 : (1 - dy) * 100;
+      const role = roleAt(t, pos);
+      const j = tm.slots[slotAt(tm, pos)];
+      const front = FRONT.has(pos);
+      const inner = `<span class="role">${role}</span><span class="jn">${role === "L" ? "" : (j ? esc(j) : "")}</span><span class="posbadge">${pos}</span>`;
+      const label = `${ROLE_NAME[role]}, rotationsposition ${pos}${j && role !== "L" ? ", nummer " + j : ""}`;
+      html += playerBtn(t, pos, `${front ? "front" : "back"} ${role === "P" ? "is-setter" : ""}`, `left:${left.toFixed(1)}%;top:${top.toFixed(1)}%`, inner, label);
+    }
+    return html + `</div></div>`;
+  }
+
+  function renderHalf(t, layout, sideCls, note) {
+    const tm = state.teams[t];
+    let html = `<div class="half ${sideCls} t${t}">`;
+    if (note) html += `<div class="half-note">${note}</div>`;
+    for (const row of layout) for (const pos of row) {
+      const s = slotAt(tm, pos);
+      const j = tm.slots[s];
+      const front = FRONT.has(pos);
+      const serving = state.server === t && pos === 1;
+      const subbed = tm.orig[s] !== null;
+      const isSetter = tm.setter === s;
+      const label = `${tm.name}, position ${pos}, ${front ? "framspelare" : "bakspelare"}, ${j ? "nummer " + j : "inget nummer"}${isSetter ? ", passare" : ""}${serving ? ", servar" : ""}`;
+      html += `<div class="zone ${front ? "front" : "back"}">
+        <span class="posno">${pos}</span>
+        <button type="button" class="player ${front ? "front" : "back"} ${j ? "" : "empty"} ${serving ? "serving" : ""}" data-team="${t}" data-pos="${pos}" aria-label="${esc(label)}">
+          ${j ? esc(j) : pos}
+          ${serving ? `<svg class="ballmark" viewBox="0 0 24 24" aria-hidden="true"><use href="#vball"/></svg>` : ""}
+          ${subbed ? `<span class="subbed" title="Inbytt">IN</span>` : ""}
+          ${isSetter ? `<span class="setterbadge" title="Passare">P</span>` : roleAt(t, pos) === "L" ? `<span class="setterbadge" title="Libero ersätter centern här">L</span>` : ""}
+        </button></div>`;
+    }
+    return html + "</div>";
+  }
+
+  function halfFor(t, layout, cls) {
+    if (state.view !== "rcv") return renderHalf(t, layout, cls);
+    const rt = receivingTeam();
+    if (rt === null) return renderHalf(t, layout, cls, t === 0 ? "" : "");
+    if (t !== rt) return renderHalf(t, layout, cls);
+    if (setterPos(t) === null) return renderHalf(t, layout, cls, "Markera passaren: håll inne på spelaren och välj <b>Passare</b>.");
+    return renderReceptionHalf(t, layout, cls);
+  }
+
+  function renderCourt(L, R) {
+    $("court").innerHTML = halfFor(L, LAYOUT_LEFT, "left") + `<div class="net" aria-hidden="true"></div>` + halfFor(R, LAYOUT_RIGHT, "right");
+    const tag = (t) => { const sp = setterPos(t); if (sp === null) return ""; const rcv = state.view === "rcv" && receivingTeam() === t; return `<span class="rcv-tag">${rcv ? "Mottag " : ""}P${sp}</span>`; };
+    $("sideNames").innerHTML =
+      `<span><i class="t${L}"></i>${esc(state.teams[L].name)} ${tag(L)}</span>
+       <span>${tag(R)} ${esc(state.teams[R].name)}<i class="t${R}"></i></span>`;
+    const seg = $("viewSeg");
+    seg.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.dataset.view === state.view));
+    $("legend").hidden = state.view !== "rcv";
+    $("chkLibero").checked = !!state.libero;
+    const rt = receivingTeam();
+    $("legendTop").innerHTML = state.view !== "rcv" ? "" :
+      rt === null ? "Välj vem som servar först, så visas mottagningen för det andra laget." :
+      `<b>${esc(state.teams[rt].name)}</b> tar emot${setterPos(rt) ? ` i <b>P${setterPos(rt)}</b> (passaren i position ${setterPos(rt)})` : ""}.`;
+  }
+
+  function renderControls(L, R) {
+    const can = state.phase === "play" && state.server !== null;
+    const last = state.history[state.history.length - 1];
+    const undoTxt = last ? `+1 ${esc(state.teams[last.winner].name)}` : "inget att ångra";
+    $("controls").innerHTML =
+      `<button class="btn-point t${L}" type="button" data-act="point" data-team="${L}" ${can ? "" : "disabled"}><span>+1</span><small>${esc(state.teams[L].name)}</small><span class="pscore">${state.score[L]}</span></button>
+       <div class="mid-controls">
+         <button class="btn-undo" type="button" data-act="undo" ${last ? "" : "disabled"}>Ångra<small>${undoTxt}</small></button>
+         <button class="btn-side" type="button" data-act="switch">Byt sida<small>⇄</small></button>
+       </div>
+       <button class="btn-point t${R}" type="button" data-act="point" data-team="${R}" ${can ? "" : "disabled"}><span>+1</span><small>${esc(state.teams[R].name)}</small><span class="pscore">${state.score[R]}</span></button>`;
+    const sub = (t) => { const n = state.teams[t].subs; return `<span>Byten ${esc(state.teams[t].name)}: <b class="${n > 6 ? "over" : ""}">${n}/6</b></span>`; };
+    $("subsRow").innerHTML = sub(L) + sub(R);
+  }
+
+  // ---------- sheets ----------
+  let sheetCtx = null;
+  function closeSheet() { $("overlay").hidden = true; $("sheet").innerHTML = ""; sheetCtx = null; }
+
+  function openSheet(kind, ctx = {}) {
+    sheetCtx = Object.assign({ kind }, ctx);
+    const el = $("sheet");
+    if (kind === "player") el.innerHTML = playerSheet();
+    else if (kind === "set") el.innerHTML = setSheet();
+    else if (kind === "match") el.innerHTML = matchSheet();
+    else if (kind === "switch8") el.innerHTML = switch8Sheet();
+    else if (kind === "settings") el.innerHTML = settingsSheet();
+    else if (kind === "rename") el.innerHTML = renameSheet();
+    $("overlay").hidden = false;
+    const f = el.querySelector("[autofocus]");
+    if (f) setTimeout(() => { f.focus(); if (f.select) f.select(); }, 30);
+  }
+
+  function head(eyebrow, title, mode, closable = true) {
+    return `<div class="sheet-head ${mode ? "mode-" + mode : ""}"><div><div class="eyebrow">${eyebrow}</div><h2 id="sheetTitle">${title}</h2></div>
+      ${closable ? `<button class="x" type="button" data-act="close" aria-label="Stäng">×</button>` : ""}</div>`;
+  }
+
+  function playerSheet() {
+    const { team: t, pos, mode } = sheetCtx;
+    const tm = state.teams[t];
+    const s = slotAt(tm, pos);
+    const cur = tm.slots[s];
+    const row = FRONT.has(pos) ? "Framspelare" : "Bakspelare";
+    const eyebrow = `${esc(tm.name)} · Position ${pos} · ${row}`;
+    const tabs = `<div class="tabs" role="tablist">
+        <button class="tab t-edit" role="tab" type="button" data-act="mode" data-mode="edit" aria-selected="${mode === "edit"}">Ändra nummer</button>
+        <button class="tab t-sub" role="tab" type="button" data-act="mode" data-mode="sub" aria-selected="${mode === "sub"}">Byte</button>
+      </div>`;
+    if (mode === "edit") {
+      const nextPos = pos % 6 + 1;
+      return head(eyebrow, `Tröjnummer på position ${pos}`, "edit") +
+        `<div class="sheet-body">${tabs}
+          <div class="mode-banner edit">Du ändrar bara numret som visas. Det räknas <b>inte</b> som ett byte.</div>
+          <div class="field"><label for="inpNum">Tröjnummer</label>
+            <input class="inp num" id="inpNum" inputmode="numeric" autocomplete="off" maxlength="3" value="${esc(sheetCtx.numDraft ?? cur)}" placeholder="${pos}" autofocus></div>
+          <p class="warnline" id="dupWarn" hidden></p>
+          <div class="actions">
+            <button class="btn edit" type="button" data-act="saveNum">Spara</button>
+            <button class="btn secondary" type="button" data-act="saveNumNext">Spara och gå till pos ${nextPos}</button>
+          </div>
+          <div class="setter-row">
+            <div><div class="lbl" style="font-weight:600">Passare</div><p class="muted">${tm.setter === s ? "Den här spelaren är lagets passare." : tm.setter !== null ? "Laget har redan en passare. Den flyttas hit om du väljer den här." : "Används för servemottagningsvyn."}</p></div>
+            <button class="btn ${tm.setter === s ? "setter-on" : "secondary"}" type="button" data-act="setSetter" style="flex:none">${tm.setter === s ? "✓ Passare" : "Gör till passare"}</button>
+          </div>
+          ${cur ? `<button class="btn link" type="button" data-act="clearNum">Ta bort numret</button>` : ""}
+        </div>`;
+    }
+    const n = tm.subs;
+    return head(eyebrow, cur ? `Byte på position ${pos}` : `Byte på position ${pos}`, "sub") +
+      `<div class="sheet-body">${tabs}
+        <div class="mode-banner sub">Byte: en ny spelare går in på den här positionen. Räknas som byte (${n} av 6 gjorda i setet).</div>
+        <div class="swap">
+          <div class="out"><div class="muted">Ut</div><div class="n">${cur ? esc(cur) : "?"}</div></div>
+          <div class="arrow">→</div>
+          <div class="field"><label for="inpSub">In (nr)</label><input class="inp num" id="inpSub" inputmode="numeric" autocomplete="off" maxlength="3" autofocus></div>
+        </div>
+        ${tm.orig[s] !== null ? `<p class="muted">Startspelare på den här platsen var nr ${esc(tm.orig[s])}. Hen får bara komma tillbaka hit.</p>` : ""}
+        ${n >= 6 ? `<p class="warnline">Laget har redan gjort ${n} byten i setet (max 6 enligt reglerna).</p>` : ""}
+        <p class="warnline" id="dupWarn" hidden></p>
+        <div class="actions"><button class="btn sub" type="button" data-act="doSub">Genomför byte</button></div>
+      </div>`;
+  }
+
+  function serverPick(defaultT, label) {
+    const [L, R] = sides();
+    sheetCtx.nextServer = defaultT;
+    const b = (t) => `<button class="btn-team t${t}" type="button" data-act="pickServer" data-team="${t}" aria-pressed="${defaultT === t}"><span>${esc(state.teams[t].name)}</span></button>`;
+    return `<div class="field"><span class="lbl">${label}</span><div class="pick">${b(L)}${b(R)}</div></div>`;
+  }
+
+  function setSheet() {
+    const r = state.setResults[state.setResults.length - 1];
+    const w = state.teams[r.winner];
+    const nextIdx = state.setIndex + 1;
+    const nextDeciding = (() => { const n = state.settings.setsToPlay; return (n === 3 || n === 5) && nextIdx === n - 1; })();
+    const def = nextDeciding ? null : (state.firstServer === null ? null : 1 - state.firstServer);
+    const [L, R] = sides();
+    return head(`Set ${state.setIndex + 1} klart`, `${esc(w.name)} vinner set ${state.setIndex + 1}`, "win", false) +
+      `<div class="sheet-body">
+        <p class="bigscore">${state.score[L]}–${state.score[R]}</p>
+        <p class="muted" style="text-align:center">Setställning ${esc(state.teams[L].name)} ${state.teams[L].setsWon}–${state.teams[R].setsWon} ${esc(state.teams[R].name)}</p>
+        ${serverPick(def, nextDeciding ? `Avgörande set: lotta om serven. Vem servar först i set ${nextIdx + 1}?` : `Vem servar först i set ${nextIdx + 1}? (Laget som tog emot först i förra setet.)`)}
+        <label class="check"><input type="checkbox" id="chkSwitch" checked> Byt sida inför set ${nextIdx + 1}</label>
+        <p class="muted">Tröjnummer och byten nollställs när nästa set startar.</p>
+        <div class="actions">
+          <button class="btn primary" type="button" data-act="nextSet" ${def === null ? "disabled" : ""} id="btnNextSet">Starta set ${nextIdx + 1}</button>
+          <button class="btn secondary" type="button" data-act="undoFromSheet">Ångra senaste poäng</button>
+        </div>
+      </div>`;
+  }
+
+  function matchSheet() {
+    const [a, b] = [state.teams[0], state.teams[1]];
+    let title;
+    if (a.setsWon === b.setsWon) title = "Oavgjort";
+    else title = `${esc((a.setsWon > b.setsWon ? a : b).name)} vinner matchen`;
+    const list = state.setResults.map((r, i) =>
+      `<li><span class="muted">Set ${i + 1}</span><span class="sc">${r.score[0]}–${r.score[1]}</span><span class="w t${r.winner}">${esc(state.teams[r.winner].name)}</span></li>`).join("");
+    return head("Matchen är slut", title, "win", false) +
+      `<div class="sheet-body">
+        <p class="bigscore">${a.setsWon}–${b.setsWon}</p>
+        <p class="muted" style="text-align:center">${esc(a.name)} – ${esc(b.name)}</p>
+        <ol class="setlist">${list}</ol>
+        <div class="actions">
+          <button class="btn primary" type="button" data-act="rematch">Ny match, samma lag</button>
+          <button class="btn secondary" type="button" data-act="undoFromSheet">Ångra senaste poäng</button>
+        </div>
+        <button class="btn link" type="button" data-act="close">Stäng och titta på planen</button>
+      </div>`;
+  }
+
+  function switch8Sheet() {
+    const hi = state.score[0] === 8 ? 0 : 1;
+    return head("Avgörande set", "Dags för sidbyte", "win", false) +
+      `<div class="sheet-body">
+        <p>${esc(state.teams[hi].name)} har nått 8 poäng. Lagen byter sida och fortsätter med samma serve och rotation.</p>
+        <div class="actions">
+          <button class="btn primary" type="button" data-act="switchNow">Byt sida nu</button>
+          <button class="btn secondary" type="button" data-act="close">Inte nu</button>
+        </div>
+      </div>`;
+  }
+
+  function seg(id, values, current, fmt) {
+    return `<div class="seg" data-seg="${id}">${values.map(v => `<button type="button" data-act="seg" data-seg="${id}" data-val="${v}" aria-pressed="${v === current}">${fmt ? fmt(v) : v}</button>`).join("")}</div>`;
+  }
+
+  function settingsSheet() {
+    const s = sheetCtx.draft || (sheetCtx.draft = Object.assign({}, state.settings));
+    if (!sheetCtx.colorA) sheetCtx.colorA = state.teams[0].color;
+    if (!sheetCtx.colorB) sheetCtx.colorB = state.teams[1].color;
+    const dec = s.setsToPlay === 3 || s.setsToPlay === 5;
+    const sc = (v) => v === 0 ? "0–0" : `${v}–${v}`;
+    return head("Ny match", "Matchinställningar", null) +
+      `<div class="sheet-body">
+        <div class="two">
+          <div class="field"><label for="inpA">Lag 1</label><input class="inp text" id="inpA" maxlength="30" value="${esc(sheetCtx.nameA ?? state.teams[0].name)}"></div>
+          <div class="field"><label for="inpB">Lag 2</label><input class="inp text" id="inpB" maxlength="30" value="${esc(sheetCtx.nameB ?? state.teams[1].name)}"></div>
+        </div>
+        <div class="field"><span class="lbl">Färg ${esc(sheetCtx.nameA ?? state.teams[0].name)}</span>${swatches("A", sheetCtx.colorA, null)}</div>
+        <div class="field"><span class="lbl">Färg ${esc(sheetCtx.nameB ?? state.teams[1].name)}</span>${swatches("B", sheetCtx.colorB, null)}</div>
+        <div class="field"><span class="lbl">Antal set</span>${seg("setsToPlay", [1, 2, 3, 5], s.setsToPlay, v => v === 1 ? "1" : v === 2 ? "2" : `Bäst av ${v}`)}
+          <p class="muted">${s.setsToPlay === 2 ? "Båda seten spelas alltid. Matchen kan sluta 1–1." : s.setsToPlay === 1 ? "Ett set avgör matchen." : `Först till ${Math.ceil(s.setsToPlay / 2)} vunna set.`}</p></div>
+        <div class="field"><span class="lbl">Set spelas till</span>${seg("setTarget", [15, 21, 25], s.setTarget)}</div>
+        <div class="field"><span class="lbl">Startpoäng i varje set</span>${seg("startScore", [0, 3, 5, 7], s.startScore, sc)}</div>
+        ${dec ? `<div class="field"><span class="lbl">Avgörande set spelas till</span>${seg("decidingTarget", [15, 25], s.decidingTarget)}</div>
+        <div class="field"><span class="lbl">Startpoäng i avgörande set</span>${seg("decidingStart", [0, 5, 10], s.decidingStart, v => v === 0 ? "Som övriga" : sc(v))}</div>` : ""}
+        <p class="muted">Alla set vinns med två poängs marginal.</p>
+        <div class="actions">
+          <button class="btn primary" type="button" data-act="startMatch">Starta ny match</button>
+          <button class="btn secondary" type="button" data-act="close">Avbryt</button>
+        </div>
+        <p class="muted">Pågående match nollställs när du startar en ny.</p>
+      </div>`;
+  }
+
+  function renameSheet() {
+    const t = sheetCtx.team;
+    if (!sheetCtx.color) sheetCtx.color = state.teams[t].color;
+    return head("Laget", `Namn och färg`, null) +
+      `<div class="sheet-body">
+        <div class="field"><label for="inpName">Lagets namn</label><input class="inp text" id="inpName" maxlength="30" value="${esc(sheetCtx.nameDraft ?? state.teams[t].name)}" autofocus></div>
+        <div class="field"><span class="lbl">Färg</span>${swatches("T", sheetCtx.color, null)}</div>
+        <div class="actions"><button class="btn primary" type="button" data-act="saveName">Spara</button></div>
+      </div>`;
+  }
+
+  function onCourtDup(t, num, exceptSlot) {
+    const tm = state.teams[t];
+    return num && tm.slots.some((v, i) => i !== exceptSlot && v === num);
+  }
+
+  // ---------- events ----------
+  document.addEventListener("click", (ev) => {
+    const b = ev.target.closest("[data-act]");
+    if (!b) return;
+    const act = b.dataset.act, t = b.dataset.team !== undefined ? +b.dataset.team : null;
+    switch (act) {
+      case "first": chooseFirstServer(t); break;
+      case "flipfirst": if (!state.history.length) { state.server = 1 - state.server; state.firstServer = state.server; commit(); } break;
+      case "point": addPoint(t); break;
+      case "undo": undo(); break;
+      case "switch": switchSides(); break;
+      case "rename": openSheet("rename", { team: t }); break;
+      case "close": closeSheet(); break;
+      case "mode": sheetCtx.mode = b.dataset.mode; openSheet("player", sheetCtx); break;
+      case "saveNum": case "saveNumNext": {
+        const v = $("inpNum").value.trim().replace(/\D/g, "");
+        const tm = state.teams[sheetCtx.team], s = slotAt(tm, sheetCtx.pos);
+        if (onCourtDup(sheetCtx.team, v, s) && !sheetCtx.dupOk) { showDup(`Nr ${v} står redan på planen. Tryck igen för att spara ändå.`); sheetCtx.dupOk = true; return; }
+        tm.slots[s] = v; commit();
+        if (act === "saveNumNext") openSheet("player", { team: sheetCtx.team, pos: sheetCtx.pos % 6 + 1, mode: "edit" });
+        else closeSheet();
+        break;
+      }
+      case "setSetter": {
+        const tm = state.teams[sheetCtx.team], s = slotAt(tm, sheetCtx.pos);
+        const typed = $("inpNum") ? $("inpNum").value.trim().replace(/\D/g, "") : null;
+        if (typed !== null && typed !== tm.slots[s] && !onCourtDup(sheetCtx.team, typed, s)) tm.slots[s] = typed;
+        tm.setter = tm.setter === s ? null : s; commit(); sheetCtx.numDraft = typed; openSheet("player", sheetCtx); break;
+      }
+      case "view": state.view = b.dataset.view; commit(); break;
+      case "clearNum": { const tm = state.teams[sheetCtx.team]; tm.slots[slotAt(tm, sheetCtx.pos)] = ""; commit(); closeSheet(); break; }
+      case "doSub": {
+        const v = $("inpSub").value.trim().replace(/\D/g, "");
+        if (!v) { showDup("Skriv in numret på spelaren som går in."); return; }
+        const tm = state.teams[sheetCtx.team], s = slotAt(tm, sheetCtx.pos);
+        if (onCourtDup(sheetCtx.team, v, s) && !sheetCtx.dupOk) { showDup(`Nr ${v} står redan på planen. Tryck igen för att byta ändå.`); sheetCtx.dupOk = true; return; }
+        const old = tm.slots[s];
+        if (tm.orig[s] === null) tm.orig[s] = old || String(sheetCtx.pos);
+        if (tm.orig[s] === v) tm.orig[s] = null; // startspelaren tillbaka
+        tm.slots[s] = v; tm.subs++;
+        commit(); closeSheet(); break;
+      }
+      case "pickServer": {
+        sheetCtx.nextServer = t;
+        b.parentElement.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
+        const nb = $("btnNextSet"); if (nb) nb.disabled = false;
+        break;
+      }
+      case "nextSet": {
+        if (sheetCtx.nextServer === null || sheetCtx.nextServer === undefined) return;
+        const sw = $("chkSwitch").checked, srv = sheetCtx.nextServer;
+        closeSheet(); startNextSet(srv, sw); break;
+      }
+      case "undoFromSheet": closeSheet(); undo(); break;
+      case "switchNow": closeSheet(); switchSides(); break;
+      case "rematch": { const s = state.settings, n = [state.teams[0].name, state.teams[1].name], cols = [state.teams[0].color, state.teams[1].color], v = state.view, lb = state.libero; closeSheet(); state = newMatch(s, n, cols); state.view = v; state.libero = lb; commit(); break; }
+      case "seg": {
+        const k = b.dataset.seg, v = +b.dataset.val;
+        sheetCtx.nameA = $("inpA").value; sheetCtx.nameB = $("inpB").value;
+        sheetCtx.draft[k] = v; openSheet("settings", sheetCtx); break;
+      }
+      case "startMatch": {
+        const a = $("inpA").value.trim() || "Lag 1", bb = $("inpB").value.trim() || "Lag 2";
+        const s = sheetCtx.draft, cols = [sheetCtx.colorA, sheetCtx.colorB], v = state.view, lb = state.libero; closeSheet(); state = newMatch(s, [a, bb], cols); state.view = v; state.libero = lb; commit(); break;
+      }
+      case "saveName": { const v = $("inpName").value.trim(); const tm = state.teams[sheetCtx.team]; if (v) tm.name = v; tm.color = sheetCtx.color; commit(); closeSheet(); break; }
+      case "color": {
+        const tg = b.dataset.target, c = b.dataset.color;
+        if (tg === "T") { sheetCtx.color = c; sheetCtx.nameDraft = $("inpName").value; openSheet("rename", sheetCtx); }
+        else { sheetCtx["color" + tg] = c; sheetCtx.nameA = $("inpA").value; sheetCtx.nameB = $("inpB").value; openSheet("settings", sheetCtx); }
+        break;
+      }
+    }
+  });
+
+  $("btnSettings").addEventListener("click", () => openSheet("settings", {}));
+  $("chkLibero").addEventListener("change", (e) => { state.libero = e.target.checked; commit(); });
+  $("overlay").addEventListener("click", (e) => {
+    if (e.target === $("overlay") && sheetCtx && !["set", "match", "switch8"].includes(sheetCtx.kind)) closeSheet();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && sheetCtx && !["set", "match"].includes(sheetCtx.kind)) closeSheet();
+    if (e.key === "Enter" && sheetCtx && e.target.matches("input")) {
+      const map = { player: sheetCtx.mode === "edit" ? "saveNum" : "doSub", rename: "saveName" };
+      const act = map[sheetCtx.kind]; if (act) { e.preventDefault(); $("sheet").querySelector(`[data-act="${act}"]`)?.click(); }
+    }
+  });
+  $("sheet").addEventListener("input", (e) => { if (sheetCtx) sheetCtx.dupOk = false; const w = $("dupWarn"); if (w) w.hidden = true; });
+  function showDup(msg) { const w = $("dupWarn"); if (w) { w.textContent = msg; w.hidden = false; } }
+
+  // Långtryck = ändra nummer, tryck = byte
+  let pressTimer = null, longFired = false, pressEl = null, startXY = null;
+  const court = $("court");
+  court.addEventListener("pointerdown", (e) => {
+    const p = e.target.closest(".player"); if (!p) return;
+    longFired = false; pressEl = p; startXY = [e.clientX, e.clientY];
+    p.classList.add("pressing");
+    pressTimer = setTimeout(() => {
+      longFired = true; p.classList.remove("pressing");
+      if (navigator.vibrate) try { navigator.vibrate(20); } catch (_) {}
+      openSheet("player", { team: +p.dataset.team, pos: +p.dataset.pos, mode: "edit" });
+    }, 500);
+  });
+  const cancelPress = () => { clearTimeout(pressTimer); if (pressEl) pressEl.classList.remove("pressing"); pressEl = null; };
+  court.addEventListener("pointerup", cancelPress);
+  court.addEventListener("pointercancel", cancelPress);
+  court.addEventListener("pointerleave", cancelPress);
+  court.addEventListener("pointermove", (e) => { if (startXY && Math.hypot(e.clientX - startXY[0], e.clientY - startXY[1]) > 12) cancelPress(); });
+  court.addEventListener("contextmenu", (e) => { if (e.target.closest(".player")) e.preventDefault(); });
+  court.addEventListener("click", (e) => {
+    const p = e.target.closest(".player"); if (!p) return;
+    if (longFired) { longFired = false; return; }
+    const t = +p.dataset.team, pos = +p.dataset.pos;
+    openSheet("player", { team: t, pos, mode: jerseyAt(t, pos) ? "sub" : "edit" });
+  });
+
+  // Håll skärmen tänd (reglage längst ner)
+  const WAKE_KEY = "vemsServe.wake";
+  let wake = null, wakeWanted = false;
+  try { wakeWanted = localStorage.getItem(WAKE_KEY) === "1"; } catch (_) {}
+  const wakeSupported = "wakeLock" in navigator;
+  function wakeStatus(txt) { $("wakeStatus").textContent = txt; }
+  function syncWakeUi() {
+    $("wakeToggle").setAttribute("aria-checked", wakeWanted);
+    if (!wakeSupported) wakeStatus("Stöds inte i den här webbläsaren");
+    else if (!wakeWanted) wakeStatus("Av: skärmen släcks som vanligt");
+    else if (wake) wakeStatus("På: skärmen hålls tänd");
+    else wakeStatus("Väntar…");
+  }
+  function requestWake() {
+    if (!wakeSupported || !wakeWanted || wake || document.visibilityState !== "visible") { syncWakeUi(); return; }
+    navigator.wakeLock.request("screen").then(w => {
+      wake = w; syncWakeUi();
+      w.addEventListener("release", () => { wake = null; syncWakeUi(); });
+    }).catch(() => { wake = null; wakeStatus("Kunde inte aktiveras här. Prova att öppna sidan direkt i webbläsaren."); });
+  }
+  function releaseWake() { if (wake) { wake.release().catch(() => {}); wake = null; } syncWakeUi(); }
+  $("wakeToggle").addEventListener("click", () => {
+    if (!wakeSupported) return;
+    wakeWanted = !wakeWanted;
+    try { localStorage.setItem(WAKE_KEY, wakeWanted ? "1" : "0"); } catch (_) {}
+    wakeWanted ? requestWake() : releaseWake();
+  });
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") requestWake(); });
+  // Vissa webbläsare kräver en tryckning innan låset ges: försök igen vid första tryck
+  document.addEventListener("pointerdown", () => { if (wakeWanted && !wake) requestWake(); }, { passive: true });
+  syncWakeUi(); requestWake();
+
+  render();
+  if (state.phase === "setOver") openSheet("set");
+  else if (state.phase === "matchOver") openSheet("match");
+})();
+</script>
+
+</body>
+</html>
